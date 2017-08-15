@@ -4,6 +4,7 @@
 :- use_module(library(clpfd)).
 :- use_module(library(crypto)).
 :- use_module(library(dif)).
+:- use_module(library(http/http_dispatch)).
 :- use_module(library(http/http_json)).
 :- use_module(library(http/http_open)).
 :- use_module(library(listing)).
@@ -14,6 +15,7 @@
 :-dynamic '$copy'/1.
 :-op(600, xfy, '=>').
 
+:- http_handler(/, alexa, [methods([get,head,options]),prefix]).
 
 
 alexa(Request):-
