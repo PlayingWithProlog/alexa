@@ -1,4 +1,15 @@
 :-module(alexa_mod,[alexa/1]).
+
+:- use_module(library(base64)).
+:- use_module(library(clpfd)).
+:- use_module(library(crypto)).
+:- use_module(library(dif)).
+:- use_module(library(http/http_json)).
+:- use_module(library(http/http_open)).
+:- use_module(library(listing)).
+:- use_module(library(ssl)).
+:- use_module(library(url)).
+
 :- dynamic sessionid_fact/2.
 :-dynamic '$copy'/1.
 :-op(600, xfy, '=>').
@@ -63,7 +74,7 @@ signature_pow(Sig, Exp, P, Pow) :-
 	portray_clause(myout,Exp),
 	%portray_clause(myout,'P:'),
 	%portray_clause(myout,P),
-	P =public_key(rsa(P2,EXP2,_,_,_,_,_,_)),
+	P =public_key(rsa(P2,_EXP2,_,_,_,_,_,_)),
 	%portray_clause(myout,'P just number:'),
         %portray_clause(myout,P2),
 	(string(P2) -> portray_clause(myout,'String hex P number');portray_clause(myout,notstring)),
@@ -98,7 +109,7 @@ checkchain(Chain):-
         length(Chain,L),
 	L#>1.			%Insure chain has more than one cert
 	%portray_clause(myout,Chain),
-	checkchain_h(Chain).
+	%checkchain_h(Chain).
 	
 checkchain_h([_]). %Reached the root.
 checkchain_h(Chain):-
@@ -152,7 +163,7 @@ httpsbody(Request,Body):-
 
 
 mygetbody(Stream,String1):-
-	read_string(Stream,"\n","",E,String1),
+	read_string(Stream,"\n","",_E,String1),
 	portray_clause(myout,'E Value of read string:'),
 	portray_clause(myout,'not printable').
 	%portray_clause(myout,E).
