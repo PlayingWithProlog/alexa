@@ -1,4 +1,4 @@
-:-module(alexa_mod,[alexa/1,test/1]).
+:-module(alexa_mod,[alexa/1]).
 
 :- use_module(authenticate_alexa).
 
@@ -10,9 +10,9 @@
 :- dynamic '$copy'/1.
 :- op(600, xfy, '=>').
 
-:- http_handler(/, alexa, [methods([get,head,options]),prefix]).
 
-test(duck).
+
+
 
 alexa(Request):-
 	/*
