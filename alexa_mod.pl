@@ -1,8 +1,21 @@
 :-module(alexa_mod,[alexa/1]).
+
+:- use_module(library(base64)).
+:- use_module(library(clpfd)).
+:- use_module(library(crypto)).
+:- use_module(library(dif)).
+:- use_module(library(http/http_dispatch)).
+:- use_module(library(http/http_json)).
+:- use_module(library(http/http_open)).
+:- use_module(library(listing)).
+:- use_module(library(ssl)).
+:- use_module(library(uri)).
+
 :- dynamic sessionid_fact/2.
 :-dynamic '$copy'/1.
 :-op(600, xfy, '=>').
 
+:- http_handler(/, alexa, [methods([get,head,options]),prefix]).
 
 
 alexa(Request):-
@@ -63,7 +76,7 @@ signature_pow(Sig, Exp, P, Pow) :-
 	portray_clause(myout,Exp),
 	%portray_clause(myout,'P:'),
 	%portray_clause(myout,P),
-	P =public_key(rsa(P2,EXP2,_,_,_,_,_,_)),
+	P =public_key(rsa(P2,_EXP2,_,_,_,_,_,_)),
 	%portray_clause(myout,'P just number:'),
         %portray_clause(myout,P2),
 	(string(P2) -> portray_clause(myout,'String hex P number');portray_clause(myout,notstring)),
@@ -77,15 +90,24 @@ signature_pow(Sig, Exp, P, Pow) :-
 	portray_clause(myout,Pow),
 	portray_clause(myout,verified).
 
+%! check_sigchainurl(+Request:compound, -Url:atom) is semidet.
+%
+% Verify the Signature Certificate URL.
+
 check_sigchainurl(Request,URL):-
 	memberchk(signaturecertchainurl(URL),Request),
-	parse_url(URL,P), %what about normalise url? I dont think it is needed
-	memberchk(protocol(https),P),%should make case insenstive
-	memberchk(host('s3.amazonaws.com'),P), %should make case insenstive
-	memberchk(path(Path),P),
-	string_concat('/echo.api/',_,Path),
-	(memberchk(port(Port),P) -> Port =443 ; true).
-			  
+  % The protocol is equal to `https` (case insensitive).
+	uri_components(URL, uri_components(https,Authority,Path,_,_)),
+  % The hostname is equal to `s3.amazonaws.com` (case insensitive).
+  uri_authority_components(
+    Authority,
+    uri_authority(_,_,'s3.amazonaws.com',Port)
+  ),
+  % The path starts with `/echo.api/` (case sensitive).
+  atom_prefix(Path, '/echo.api/'),
+  % If a port is defined in the URL, the port is equal to 443.
+  (var(Port) -> true ; Port =:= 443).
+
 checkcertvalid_time(Acert):-
 	memberchk(notbefore(NotBefore),Acert),
 	memberchk(notafter(NotAfter),Acert),
@@ -98,7 +120,7 @@ checkchain(Chain):-
         length(Chain,L),
 	L#>1.			%Insure chain has more than one cert
 	%portray_clause(myout,Chain),
-	checkchain_h(Chain).
+	%checkchain_h(Chain).
 	
 checkchain_h([_]). %Reached the root.
 checkchain_h(Chain):-
@@ -152,7 +174,7 @@ httpsbody(Request,Body):-
 
 
 mygetbody(Stream,String1):-
-	read_string(Stream,"\n","",E,String1),
+	read_string(Stream,"\n","",_E,String1),
 	portray_clause(myout,'E Value of read string:'),
 	portray_clause(myout,'not printable').
 	%portray_clause(myout,E).
