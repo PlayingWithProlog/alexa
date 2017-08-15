@@ -8,7 +8,7 @@
 :- use_module(library(http/http_open)).
 :- use_module(library(listing)).
 :- use_module(library(ssl)).
-:- use_module(library(url)).
+:- use_module(library(uri)).
 
 :- dynamic sessionid_fact/2.
 :-dynamic '$copy'/1.
@@ -88,15 +88,24 @@ signature_pow(Sig, Exp, P, Pow) :-
 	portray_clause(myout,Pow),
 	portray_clause(myout,verified).
 
+%! check_sigchainurl(+Request:compound, -Url:atom) is semidet.
+%
+% Verify the Signature Certificate URL.
+
 check_sigchainurl(Request,URL):-
 	memberchk(signaturecertchainurl(URL),Request),
-	parse_url(URL,P), %what about normalise url? I dont think it is needed
-	memberchk(protocol(https),P),%should make case insenstive
-	memberchk(host('s3.amazonaws.com'),P), %should make case insenstive
-	memberchk(path(Path),P),
-	string_concat('/echo.api/',_,Path),
-	(memberchk(port(Port),P) -> Port =443 ; true).
-			  
+  % The protocol is equal to `https` (case insensitive).
+	uri_components(URL, uri_components(https,Authority,Path,_,_)),
+  % The hostname is equal to `s3.amazonaws.com` (case insensitive).
+  uri_authority_components(
+    Authority,
+    uri_authority(_,_,'s3.amazonaws.com',Port)
+  ),
+  % The path starts with `/echo.api/` (case sensitive).
+  atom_prefix(Path, '/echo.api/'),
+  % If a port is defined in the URL, the port is equal to 443.
+  (var(Port) -> true ; Port =:= 443).
+
 checkcertvalid_time(Acert):-
 	memberchk(notbefore(NotBefore),Acert),
 	memberchk(notafter(NotAfter),Acert),
